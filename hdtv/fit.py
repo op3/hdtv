@@ -51,6 +51,7 @@ class Fit(Drawable):
     FitPeakPreHooks = list()
     FitPeakPostHooks = list()
     showDecomp = False  # Default value for decomposition status
+    showResiduals = False  # Default value for residuals status
 
     def __init__(self, fitter, color=None, cal=None):
         self.regionMarkers = MarkerCollection("X", paired=True, maxnum=1,
@@ -61,10 +62,12 @@ class Fit(Drawable):
                                           color=hdtv.color.bg, cal=cal)
         self.fitter = fitter
         self.peaks = []
+        self.residuals = None
         self.chi = None
         self.bgChi = None
         self.bgParams = []
         self._showDecomp = Fit.showDecomp
+        self._showResiduals = Fit.showResiduals
         self.dispPeakFunc = None
         self.dispBgFunc = None
         Drawable.__init__(self, color, cal)
@@ -99,6 +102,8 @@ class Fit(Drawable):
             self.dispBgFunc.SetCal(self._cal)
         for peak in self.peaks:
             peak.cal = self._cal
+        if self.residuals:
+            self.residuals.SetCal(self._cal)
         if self.viewport:
             self.viewport.UnlockUpdate()
 
@@ -118,6 +123,8 @@ class Fit(Drawable):
         self.bgMarkers.color = color
         for peak in self.peaks:
             peak.color = color
+        if self.residuals:
+            self.residuals.color = color
         self.Show()
         if self.viewport:
             self.viewport.UnlockUpdate()
@@ -137,6 +144,8 @@ class Fit(Drawable):
         self.bgMarkers.active = state
         for peak in self.peaks:
             peak.active = state
+        if self.residuals:
+            self.residuals.active = state
         self.Show()
         if self.viewport:
             self.viewport.UnlockUpdate()
@@ -469,6 +478,11 @@ class Fit(Drawable):
                 peak = self.fitter.peakModel.CopyPeak(
                     cpeak, hdtv.color.peak, self.cal)
                 self.peaks.append(peak)
+            # get residuals
+            res = self.fitter.peakFitter.GetResiduals()
+            self.residuals = ROOT.HDTV.Display.DisplaySpec(
+                res, self.color)
+            self.residuals.SetCal(self.cal)
             # in some rare cases it can happen that peaks change position
             # while doing the fit, thus we have to sort here
             self.peaks.sort()
@@ -522,6 +536,9 @@ class Fit(Drawable):
             if not self.integral:
                 self.integral = hdtv.integral.Integrate(
                     self.spec, self.fitter.bgFitter, region)
+        self.residuals = ROOT.HDTV.Display.DisplaySpec(
+            self.fitter.peakFitter.GetResiduals(), self.color)
+        self.residuals.SetCal(self.cal)
 
     def Draw(self, viewport):
         """
@@ -549,6 +566,8 @@ class Fit(Drawable):
         for peak in self.peaks:
             peak.color = self.color
             peak.Draw(self.viewport)
+        if self.residuals:
+            self.residuals.Draw(self.viewport)
         self.Show()
         if self.viewport:
             self.viewport.UnlockUpdate()
@@ -577,6 +596,8 @@ class Fit(Drawable):
         # draw peaks
         for peak in self.peaks:
             peak.Draw(self.viewport)
+        if self.residuals:
+            self.residuals.Draw(self.viewport)
         # draw the markers (do this after the fit,
         # because the fit updates the position of the peak markers)
         self.peakMarkers.Refresh()
@@ -594,6 +615,7 @@ class Fit(Drawable):
         self.fitter.bgFitter = None
         self.bgParams = []
         self.bgChi = None
+        self.residuals = None
         if not bg_only:
             # remove peak fit
             self.dispPeakFunc = None
@@ -623,6 +645,10 @@ class Fit(Drawable):
                 peak.Show()
             else:
                 peak.Hide()
+        if self._showResiduals and self.residuals:
+            self.residuals.Show()
+        elif self.residuals:
+            self.residuals.Hide()
         self.viewport.UnlockUpdate()
 
     def ShowAsPending(self):
@@ -648,6 +674,10 @@ class Fit(Drawable):
                 peak.Show()
             else:
                 peak.Hide()
+        if self._showResiduals and self.residuals:
+            self.residuals.Show()
+        elif self.residuals:
+            self.residuals.Hide()
         self.viewport.UnlockUpdate()
 
     def ShowAsPassive(self):
@@ -676,6 +706,10 @@ class Fit(Drawable):
                 peak.Show()
             else:
                 peak.Hide()
+        if self._showResiduals and self.residuals:
+            self.residuals.Show()
+        elif self.residuals:
+            self.residuals.Hide()
         self.viewport.UnlockUpdate()
 
     def Show(self):
@@ -702,6 +736,8 @@ class Fit(Drawable):
             self.dispBgFunc.Hide()
         for peak in self.peaks:
             peak.Hide()
+        if self.residuals:
+            self.residuals.Hide()
         self.viewport.UnlockUpdate()
 
     def __copy__(self):
@@ -780,3 +816,13 @@ class Fit(Drawable):
         else:
             for peak in self.peaks:
                 peak.Hide()
+    
+    def SetResiduals(self, stat=True):
+        """
+        Sets whether to display the residuals of the fit
+        """
+        self._showResiduals = stat
+        if stat and self.residuals:
+            self.residuals.Show()
+        elif self.residuals:
+            self.residuals.Hide()
