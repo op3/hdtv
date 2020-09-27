@@ -786,8 +786,9 @@ class TvFitInterface(object):
             help="select spectra to work on")
         parser.add_argument(
             "fitids",
+            nargs='*',
             default=None,
-            help="id(?) of fit(s) to show residuals of",)
+            help="id(s) of fit(s) to show residuals of. Use 'none' to show the residuals of the WorkFit (default)",)
         hdtv.cmdline.AddCommand(prog, self.FitShowResiduals, parser=parser)
 
         prog = "fit hide decomposition"
@@ -812,7 +813,7 @@ class TvFitInterface(object):
         parser.add_argument(
             "fitids",
             default=None,
-            help="id(s) of fit(s) to hide residuals of",)
+            help="id(s) of fit(s) to hide residuals of. Use 'none' to hide the residuals of the WorkFit (default)",)
         hdtv.cmdline.AddCommand(prog, self.FitHideResiduals, parser=parser)
 
         prog = "fit focus"
